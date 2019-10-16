@@ -2,14 +2,14 @@
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h3>Thêm mới sản phẩm</h2>
+				<h3 id="title-form">Thêm mới sản phẩm</h2>
 			</div>
 			<form id="form-add" method="POST" enctype="multipart/form-data">
 				<div class="modal-body ">
 					<div class="form-row">
 						<div class="col-md-7 col-mb-1">
-							<label for="title">Tên sản phẩm</label>
-							<input type="text" class="form-control" id="title" value="" placeholder="Tên sản phẩm" required/>
+							<label for="titleProduct">Tên sản phẩm</label>
+							<input type="text" class="form-control" id="titleProduct" value="" placeholder="Tên sản phẩm" required/>
 						</div>
           </div>
           <br>
@@ -18,7 +18,7 @@
 							<label for="imgUrl">Ảnh sản phẩm</label>
 							<div class="custom-file">
 								<input type="file" name="myImage" class="custom-file-input" id="imgUrl"/>
-								<label class="custom-file-label" for="new-supplier-avatar">Choose file</label>
+								<label class="custom-file-label" for="new-product-avatar">Choose file</label>
 							</div>
 						</div>
           </div>
@@ -45,10 +45,231 @@
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button class="btn btn-default btn-primary closemodal" type="submit" >Tạo mới</button>
+					<button class="btn btn-default btn-primary closemodal" type="submit" id="name-button">Tạo mới</button>
 					<button class='btn btn-default btn-dark' id="closemodal" type ='button' data-dismiss="modal">Hủy bỏ</button>
 				</div>
 			</form>
 		</div>
 	</div>
 </div>
+ <!-- <script src="../../handlers/product/productHandlers.js"></script> -->
+ <script>
+ $(document).ready(() =>{
+    // handle for create and edit button click
+    $('.closemodal').on('click',()=>{
+        $('#my-product-dialog-new').modal('toggle');
+        $(".modal-backdrop").remove();
+    })
+     
+    $(document).keyup(function(e) {
+        if (e.key === "Escape") { // escape key maps to keycode `27`
+            $(".modal-backdrop").remove();
+        }
+    }); 
+
+     $(".custom-file-input").on("change", function() {
+    let fileName = $(this).val().split("\\").pop();
+    $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    });
+
+    // variable for CRUD and Create, update form.
+    const titleForm = $('#title-form');
+    const buttonName = $('#name-button');
+    const display = $("#display") ;
+    const form = $("#form-add");
+    const titleProduct = $("#titleProduct");
+    const imgUrl = $("#imgUrl");
+    const price = $("#price");
+    const barcode = $("#barcode");
+    const description = $("#description");
+    const closemodal = $("#closemodal");
+
+    const modalNew = $("#my-product-dialog-new");
+  //   const modalEdit = $("#my-product-dialog-edit");
+    const getProducts = (pageNo,size) => {
+      fetch(`/admin/getAllProducts?pageNo=${pageNo}&size=${size}`, {method: "get"})
+          .then(response => response.json())
+          .then(data =>{
+            displayProduct(data, pageNo, size);
+          });
+    }
+    getProducts(1,5);
+
+   $('#show_paginator').bootpag({
+        total: 10,
+        page: 1,
+        maxVisible: 5
+    }).on('page', function(event, num){
+      getProducts(num,5);
+    });
+
+  const buildTemplate = (product, ids) =>{
+    return `
+      <tr id="${ids.listItemID}">
+      <td>${ids.stt}</td>
+      <td id="${ids.productID}">${product.title}</td>
+      <td id="${ids.imgUrl}">${product.imgUrl}</td>
+      <td id="${ids.price}">${product.price}</td>
+      <td id="${ids.price}">${product.barcode}</td>
+      <td class="text-wrap" id="${ids.description}">${product.description}</td>
+      <td><div class="text-right">
+                  <button type="button" class="btn btn-secondary" id="${ids.editID}" data-toggle="modal" data-target="#my-product-dialog-new">Edit</button>
+                  <button type="button" class="btn btn-danger" id="${ids.deleteID}">Delete</button>
+              </div> </td>
+      </tr>
+      `;
+  }
+
+    const buildIDS = (product, page, size, index) => {
+      return {
+        stt: (page - 1) * size + index+1,
+        listItemID: "listItem_" + product._id,
+        productID: "product_" + product._id,
+        title: "title_" + product._id,
+        description: "description_" + product._id,
+        imgUrl: "imgUrl_" + product._id,
+        price: 'price_' + product._id,
+        editID: "edit_" + product._id,
+        deleteID: "delete_" + product._id
+      }
+    }
+
+    // handle display product.
+    const displayProduct = (data, page, size) => {
+        display.empty();
+        data.forEach((product, index) => {
+            let ids = buildIDS(product, page, size, index);
+            display.append(buildTemplate(product, ids));
+            editProduct(product, ids);
+            // deleteproduct(product, ids);
+        });
+   }
+
+   // handle reset product Input fields
+  resetproductInput = () =>{ 
+    titleProduct.val('');
+    $('.custom-file-label')[0].innerText='';
+    $('#imgUrl').val('')
+    price.val('');
+    barcode.val('');
+    description.val('');
+  }
+
+  
+    // handle submit create product
+   form.submit((e) =>{
+       e.preventDefault();
+        const formd = $('#form')[0];
+        const formData = new FormData(formd);
+        const json = JSON.stringify({
+          title: titleProduct.val(),
+          price: price.val(),
+          barcode: barcode.val(),
+          description: description.val(),
+          imgUrl: imgUrl.val()});
+        formData.append('file', $('#imgUrl'));
+        formData.append('data',json);
+        fetch('/admin/products', {
+          method: 'post',
+          headers : {
+            "Content-Type" : "application/json; charset=utf-8"
+          },
+          body: json
+       })
+       .then((response) =>{
+           return response.json();
+       })
+       .then(data =>{
+           if(!data.error){
+            
+           }
+           modalNew.removeAttr("display");
+           modalNew.attr("display","none");
+           closemodal.trigger("click");
+           $(".modal-backdrop").remove();
+           resetproductInput();
+           
+       });
+    });
+
+    // wait modalNew add class show, if modalNew has class show, in some case, style{display:none}
+    //therefore dialog not show
+    $('#createNew').click(()=>{
+      titleForm.text('Thêm mới sản phẩm');
+          buttonName.text('Thêm mới');
+        setTimeout(() => {
+          
+            if(modalNew.hasClass('show')){
+                modalNew.css("display","block");
+            }
+        
+        }, 1000);
+    });
+    
+    const editProduct = (product, ids) => {
+      let editBtn = $(`#${ids.editID}`);
+      editBtn.click(()=>{
+        titleForm.text('Cập nhật sản phẩm');
+        buttonName.text('Cập nhật');
+        fetch(`/admin/product/${product._id}`, { method: "get" })
+          .then(response => response.json())
+          .then(async (data) => {
+            await titleProduct.val(`${data.title}`);
+            await imgUrl.html(`${data.imgUrl}`);
+            await price.val(`${data.price}`);
+            await barcode.val(`${data.barcode}`);
+            await description.text(`${data.description}`);
+            
+            $("#my-product-dialog-new").css("display","block");
+          });
+          // after form shown and user input value and then click "Cap nhat" button
+          // handle submit "Cap nhat" button
+          form.unbind('submit').submit((e) => {
+            e.preventDefault();
+            const formd = $('#form')[0];
+            const formData = new FormData(formd);
+            const json = JSON.stringify({
+              title: titleProduct.val(),
+              price: price.val(),
+              barcode: barcode.val(),
+              description: description.val(),
+              imgUrl: imgUrl.val()});
+            formData.append('file', $('#imgUrl'));
+            formData.append('data',json);
+            console.log(formData);
+            fetch(`/admin/product/${product._id}`,{
+                method: "put",
+                body: formData
+            }).then((response)=>{
+                return response.json();
+            }).then((data)=>{
+                if(data.ok == 1){
+                  // Display new data.
+                  console.log(data);
+                  let productIndex = $(`#${ids.productID}`);
+                  productIndex.html(data.value.title); 
+                  let emailphone = $(`#${ids.emailphone}`);
+                  emailphone.html(data.value.email + ", " + data.value.phone);
+                  let phone = $(`#${ids.address}`);
+                  phone.html(data.value.address);
+                  
+                  // Hide modal
+                  modalNew.removeAttr("display");
+                  modalNew.attr("display","none");
+                  editClose.trigger("click");
+                  $(".modal-backdrop").remove();
+                
+                // get messsage here
+                }else{
+                // get message here
+                }
+              });
+              })
+            
+            });
+            }
+
+  
+});
+
+</script>
