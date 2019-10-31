@@ -2,16 +2,24 @@ const express = require('express');
 const multer = require('multer');
 const adminController = require('../controllers/admin');
 const router = express.Router();
+// ---------------- GET HERE ------------------
+router.get('/', adminController.getAdminPage);
 
 router.get('/getProducts', adminController.getPagProducts)
 
+router.get('/allProducts', adminController.getAllProducts);
+
 router.get('/product/:id', adminController.getDetailProduct);
 
-router.put('/product/:id', adminController.putProduct);
+router.get('/product/barcode/:barcode', adminController.getDetailProductByBarcode);
 
-router.delete('/product/:id', adminController.deleteProduct);
+// ---------- PUT here --------------------
+// router.put('/product/:id', adminController.putProduct);
 
-// /admin/products => GET
+// --------------- DELETE HERE -----------------------
+router.delete('/product/:id/barcode/:barcode', adminController.deleteProduct);
+
+// get view all products. in list
 router.get('/products', adminController.getProducts);
 
 module.exports = router;
